@@ -4,15 +4,15 @@ Extract time ranges from user text. Please read the given text and identify the 
 Please parse the following text and extract the "from" and "to" dates. Assume that the time is "00:00:00" (midnight) and that the timezone is UTC. 
 
 IMPORTANT
-- Assume the reference date is {today}.
+- Assume the reference date is 2025-04-20.
 - If the date is an absolute date (e.g., "May 1, 2025"), use it directly.
 - For relative expressions, interpret:
-    • "next 2 days" as the date 2 days after today (i.e., May 3, 2025).
-    • "next week" as the date 7 days after today (i.e., May 8, 2025).
+    • "next 2 days" as the date 2 days after today (i.e., May 22, 2025).
+    • "next week" as the date 7 days after today (i.e., May 28, 2025).
 - Always assume the time is 00:00:00 and use the UTC timezone.
+- Reference date: 2025-04-20
 
 SUPPORTED METHODS:
-
 1. For Lesson Count Calendar:
 {{
     "className": "LessonCalendarHandler",
@@ -37,51 +37,19 @@ SUPPORTED METHODS:
     }}
 }}
 
-2. For Event Count Calendar:
+Formatting rules:
 {{
-    "className": "EventCalendarHandler",
-    "function": "getEventsCalendar",
-    "params": {{
-        "fromDate": "", 
-        "toDate": "", 
-        "locationIds": [],
-        "teacherIds": [],
-        "filterOutLocationIds": [],
-        "classIds": [],
-        "courseIds": [],
-        "noneAssignedTeacherLessons": false,
-        "studentIds": [],
-        "noneAssignedStudentLessons": false,
-        "gradeIds": []
-    }}
+	"className": string  // The name of the class that handles the request, e.g., LessonCalendarHandler
+	"function": string  // The name of the function to call, e.g., getCountLessonsCalendarDeserializeV2
+	"params": string  // A JSON object of parameters specific to the handler.This structure is dynamic and may vary depending on the user request.
 }}
-
-3. For Get Lesson detail on Calendar:
-{{
-    "className": "LessonCalendarHandler",
-    "function": "getDetailLesson",
-    "params": {{
-        keyword: ""
-    }}
-}}
-
-4. For Get Event detail on Calendar:
-{{
-    "className": "EventCalendarHandler",
-    "function": "getDetailEvent",
-    "params": {{
-        keyword: ""
-    }}
-}}
-
-{format_instructions}
 
 IMPORTANT:
-- The output MUST include the key "className" with an appropriate value based on the query.
 - The output MUST strictly follow one of the supported methods defined below.
 - Replace the example values with the actual data based on the query.
 - Please output your answer in a JSON format with keys className, function, and params.
 - Do not put extra field to supported methods, strictly follow this schema.
+- However, if the user’s question has nothing to do with counting lessons (for example, “What’s the weather today?”), then reply in plain English with a helpful answer—do **not** output any JSON in that case.
 
 
 Additionally:
@@ -89,10 +57,14 @@ Additionally:
 - If the user says or types a Salesforce ID (15‑ or 18‑character, e.g. "S00x..."), put it into the corresponding `*Ids` array.
 - Otherwise, if the user gives a human‑readable name, put it into the corresponding `*Names` array.
 - Always include both arrays for each entity, even if one is empty.
+- If you got everything *including* a studentName but multiple students match, ask the user to pick one by number and keep previous params.
 
 
 NOTE:
 - Location Id will can be provided from user, if this method need this field, you will use it, otherwise don't need care about it.
 
-Input: {user_input}
-Output:
+Current conversation:
+{history}
+
+Human: {input}
+AI Assistant:

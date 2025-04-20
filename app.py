@@ -8,10 +8,10 @@ import re
 from pydantic import BaseModel, Field
 from typing import Union
 from datetime import datetime
-from langchain.chains import LLMChain
-from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
 
-memory = ConversationBufferWindowMemory(k=4, return_messages=True)
+memory=ConversationBufferMemory(ai_prefix="AI Assistant"),
 
 def clean_output(output):
     """
@@ -55,7 +55,7 @@ response_schemas = [
         name="params", 
         description=("A JSON object of parameters specific to the handler."
         "This structure is dynamic and may vary depending on the user request.")
-    )
+    ),
 ]
 
 today = datetime.utcnow().strftime("%Y-%m-%d")
@@ -66,18 +66,15 @@ format_instructions = output_parser.get_format_instructions()
 with open('prompt_template.txt', 'r') as file:
     prompt_template_text = file.read()
 
+PROMPT = PromptTemplate(input_variables=["history", "input"], template=prompt_template_text)
 # # Build the chain using the prompt template and the LLM.
-conv = LLMChain(
+conv = ConversationChain(
     llm=OpenAI(
         temperature=0,
-        openai_api_key=os.environ.get("OPENAI_API_KEY"),
     ),
-    prompt=PromptTemplate(
-        input_variables=["user_input", "format_instructions", "today"],
-        template=prompt_template_text
-    ),
-    verbose=False,
-    memory=memory
+    prompt=PROMPT,
+    verbose=True,
+    memory=ConversationBufferMemory(ai_prefix="AI Assistant"),
 )
 
 @app.route('/parseIntent', methods=['POST'])
@@ -92,14 +89,16 @@ def parse_intent():
     try:
         # Run the LangChain with both the user input and format instructions.
         try:
-            # Run the LangChain with the combined inputs
-            output = conv.run(user_input=user_message,format_instructions=format_instructions,today=today)
+            output = conv.predict(input=user_message)
+            # output = conv.run(user_input=user_message,format_instructions=format_instructions,today=today)
         except Exception as e:
             print("An error occurred:", e)
 
-          # Check if the output is a string or a dict
+        # Check if the output is a string or a dict
         if isinstance(output, str):
             cleaned_output = clean_output(output)
+            return cleaned_output, 200
+
         elif isinstance(output, dict):
             cleaned_output = output  # No need to clean if it's already a dict
         else:
@@ -114,7 +113,7 @@ def parse_intent():
                 
             print("Resjson_outputponse: ", json_output)
 
-             # Convert ISO 8601 dates to Unix timestamps
+            # Convert ISO 8601 dates to Unix timestamps
             if "params" in json_output:
                 if "fromDate" in json_output["params"]:
                     iso_date = json_output["params"]["fromDate"]
